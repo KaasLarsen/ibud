@@ -92,30 +92,63 @@ async function scrapeSwappie(
     await sleep(1500);
   }
 
+  // Vent på lager-radioer
+  for (let i = 0; i < 20; i++) {
+    const count = await page.evaluate(
+      () => document.querySelectorAll('input[type="radio"]').length,
+    );
+    if (count > 0) break;
+    await sleep(500);
+  }
+
   const storageLabel =
     request.storageGb >= 1024
       ? `${request.storageGb / 1024}TB`
       : `${request.storageGb}GB`;
 
-  const selected = await page.evaluate((label) => {
-    const input = Array.from(
-      document.querySelectorAll('input[type="radio"]'),
-    ).find(
-      (el) =>
-        (el as HTMLInputElement).value.toLowerCase() === label.toLowerCase(),
-    ) as HTMLInputElement | undefined;
-    if (!input) return false;
-    input.click();
-    const lab = Array.from(document.querySelectorAll("label")).find(
-      (l) => l.textContent?.trim().toLowerCase() === label.toLowerCase(),
-    );
-    lab?.click();
-    return input.checked;
-  }, storageLabel);
+  let selected = false;
+  for (let attempt = 0; attempt < 5 && !selected; attempt++) {
+    selected = await page.evaluate((label) => {
+      const radios = Array.from(
+        document.querySelectorAll('input[type="radio"]'),
+      ) as HTMLInputElement[];
+      const byValue = radios.find(
+        (r) => r.value.toLowerCase() === label.toLowerCase(),
+      );
+      if (byValue) {
+        byValue.click();
+        byValue.checked = true;
+        byValue.dispatchEvent(new Event("input", { bubbles: true }));
+        byValue.dispatchEvent(new Event("change", { bubbles: true }));
+        return byValue.checked;
+      }
+      const lab = Array.from(document.querySelectorAll("label")).find((l) =>
+        (l.textContent || "").replace(/\s+/g, "").toLowerCase().includes(
+          label.toLowerCase(),
+        ),
+      );
+      if (lab instanceof HTMLElement) {
+        lab.click();
+        return true;
+      }
+      return false;
+    }, storageLabel);
+    if (!selected) await sleep(600);
+  }
 
   if (!selected) {
+    const debug = await page.evaluate(() => ({
+      url: location.href,
+      radios: Array.from(document.querySelectorAll('input[type="radio"]')).map(
+        (el) => (el as HTMLInputElement).value,
+      ),
+      labels: Array.from(document.querySelectorAll("label"))
+        .map((l) => (l.textContent || "").trim())
+        .filter(Boolean)
+        .slice(0, 10),
+    }));
     return baseResult("swappie", deepLink, {
-      error: `Kunne ikke vælge lager ${storageLabel}`,
+      error: `Kunne ikke vælge lager ${storageLabel} (${JSON.stringify(debug)})`,
     });
   }
 
