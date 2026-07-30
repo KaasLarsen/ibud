@@ -1,5 +1,4 @@
 import type { Browser, Page } from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { BROWSER_USER_AGENT } from "./browser-helpers";
 import { partnerDeepLink, partnerDestinationUrl } from "../quotes/deep-links";
 import { getModelById } from "../quotes/catalog";
@@ -12,7 +11,11 @@ import { baseResult, parseDkkAmount } from "./types";
  */
 
 export async function launchServerlessBrowser(): Promise<Browser> {
-  process.env.AWS_LAMBDA_JS_RUNTIME ??= "nodejs22.x";
+  // MUST be set before importing @sparticuz/chromium
+  process.env.AWS_LAMBDA_JS_RUNTIME = "nodejs22.x";
+
+  const chromium = (await import("@sparticuz/chromium")).default;
+  chromium.setGraphicsMode(false);
 
   const executablePath = await chromium.executablePath();
   if (executablePath) {
@@ -25,9 +28,9 @@ export async function launchServerlessBrowser(): Promise<Browser> {
   const puppeteer = await import("puppeteer-core");
   return puppeteer.default.launch({
     args: chromium.args,
-    defaultViewport: { width: 1280, height: 800 },
+    defaultViewport: chromium.defaultViewport ?? { width: 1280, height: 800 },
     executablePath,
-    headless: true,
+    headless: chromium.headless ?? true,
   });
 }
 
@@ -72,7 +75,9 @@ async function scrapeSwappie(
   await sleep(1500);
 
   if (!(await waitForEnabledButton(page, /fortsæt/i, 30_000))) {
-    return baseResult("swappie", deepLink, { error: "Swappie-flow blev ikke klar" });
+    return baseResult("swappie", deepLink, {
+      error: "Swappie-flow blev ikke klar",
+    });
   }
   await clickButton(page, /fortsæt/i);
   await sleep(1500);
@@ -141,8 +146,9 @@ async function scrapeGreen(
   ];
   for (const label of storageLabels) {
     const clicked = await page.evaluate((text) => {
-      const el = Array.from(document.querySelectorAll("button, a, label, div, span"))
-        .find((n) => n.textContent?.trim() === text);
+      const el = Array.from(
+        document.querySelectorAll("button, a, label, div, span"),
+      ).find((n) => n.textContent?.trim() === text);
       if (el instanceof HTMLElement) {
         el.click();
         return true;
@@ -170,7 +176,9 @@ async function scrapeGreen(
   }
 
   if (amount === null) {
-    return baseResult("green", deepLink, { error: "Kunne ikke læse Green-estimat" });
+    return baseResult("green", deepLink, {
+      error: "Kunne ikke læse Green-estimat",
+    });
   }
 
   return baseResult("green", deepLink, {
@@ -204,7 +212,11 @@ async function dismissCookies(page: Page) {
   });
 }
 
-async function waitForEnabledButton(page: Page, name: RegExp, timeoutMs: number) {
+async function waitForEnabledButton(
+  page: Page,
+  name: RegExp,
+  timeoutMs: number,
+) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const ok = await page.evaluate((source) => {
