@@ -1,0 +1,56 @@
+<svg viewBox="0 0 708.7 708.7" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#Ikke-navngivet_forløb_5-2);
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6 {
+        fill-rule: evenodd;
+      }
+
+      .cls-2 {
+        fill: url(#Ikke-navngivet_forløb_5-3);
+      }
+
+      .cls-3 {
+        fill: url(#Ikke-navngivet_forløb_6-2);
+      }
+
+      .cls-4 {
+        fill: url(#Ikke-navngivet_forløb_6-3);
+      }
+
+      .cls-5 {
+        fill: url(#Ikke-navngivet_forløb_6);
+      }
+
+      .cls-6 {
+        fill: url(#Ikke-navngivet_forløb_5);
+      }
+    </style>
+    <linearGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(25.2 127.1) scale(.5 -.1)" y2="-4730.6" x2="788.7" y1="-4728.3" x1="797.4" data-sanitized-data-name="Ikke-navngivet forløb 5" data-name="Ikke-navngivet forløb 5" id="Ikke-navngivet_forløb_5">
+      <stop stop-color="#7dcef1" offset=".2"></stop>
+      <stop stop-color="#0089be" offset="1"></stop>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" gradientTransform="translate(0 27135.7) scale(32.8 -38.3)" y2="697.1" x2=".7" y1="700.9" x1="17.3" data-sanitized-data-name="Ikke-navngivet forløb 6" data-name="Ikke-navngivet forløb 6" id="Ikke-navngivet_forløb_6">
+      <stop stop-color="#85d1f5" offset=".2"></stop>
+      <stop stop-color="#1193d2" offset="1"></stop>
+    </linearGradient>
+    <linearGradient xlink:href="#Ikke-navngivet_forløb_5" gradientTransform="translate(.8 356.2) scale(.2 -.5)" y2="212" x2="91.5" y1="203.1" x1="89.2" data-sanitized-data-name="Ikke-navngivet forløb 5" data-name="Ikke-navngivet forløb 5" id="Ikke-navngivet_forløb_5-2"></linearGradient>
+    <linearGradient xlink:href="#Ikke-navngivet_forløb_6" gradientTransform="translate(1 23644.4) scale(38.6 -33.3)" y2="708.6" x2="10.9" y1="692.3" x1="7.1" data-sanitized-data-name="Ikke-navngivet forløb 6" data-name="Ikke-navngivet forløb 6" id="Ikke-navngivet_forløb_6-2"></linearGradient>
+    <linearGradient xlink:href="#Ikke-navngivet_forløb_5" gradientTransform="translate(35.5 277) scale(.4 -.4)" y2="426.2" x2="1550.6" y1="432.6" x1="1544.3" data-sanitized-data-name="Ikke-navngivet forløb 5" data-name="Ikke-navngivet forløb 5" id="Ikke-navngivet_forløb_5-3"></linearGradient>
+    <linearGradient xlink:href="#Ikke-navngivet_forløb_6" gradientTransform="translate(5.7 24438.7) scale(35.6 -34.5)" y2="692.2" x2="17.1" y1="703.7" x1="6" data-sanitized-data-name="Ikke-navngivet forløb 6" data-name="Ikke-navngivet forløb 6" id="Ikke-navngivet_forløb_6-3"></linearGradient>
+  </defs>
+  
+  <g>
+    <g id="Lag_1">
+      <path d="M431,695.8l8.8-2-8.8,2Z" class="cls-6" id="Path"></path>
+      <path d="M263.4,692.6c54.6,14.7,112,15.9,167.2,3.4-146.3,31.3-290.9-59.8-325.9-205.4-34.9-145.5,52.5-292.3,197.1-330.9,69.6-18.6,143.8,1.3,194.7,52.2,50.9,50.9,70.8,125.1,52.2,194.7,26.9-95.7.2-198.4-69.8-268.9-70-70.5-172.5-98-268.3-71.8C114.8,91.9,40.4,167.6,15.9,263.9c-49.8,186.7,60.9,378.5,247.6,428.7Z" class="cls-5" data-sanitized-data-name="Path" data-name="Path" id="Path-2"></path>
+      <path d="M20.8,250.5l-3.4,8.1c.8-2.4,1.5-5.4,3.4-8.1Z" class="cls-1" data-sanitized-data-name="Path" data-name="Path" id="Path-3"></path>
+      <path d="M106.5,106.1c-39.9,40.3-69.3,89.7-85.7,144C67.3,108.3,218.1,29.2,361.2,71.5c143.1,42.3,226.6,190.8,188.5,335-18.5,69.6-72.8,124-142.4,142.6-69.6,18.6-143.8-1.3-194.6-52.3,108.9,99.5,276.8,95.7,381.1-8.6,104.3-104.3,108.1-272.2,8.6-381.1C465.7-30,243.8-30.4,106.5,106.1Z" class="cls-3" data-sanitized-data-name="Path" data-name="Path" id="Path-4"></path>
+      <path d="M611.1,117.1c-2-2.2-4.1-4.4-6.3-6.4l6.3,6.4Z" class="cls-2" data-sanitized-data-name="Path" data-name="Path" id="Path-5"></path>
+      <path d="M692.1,263.9c-14.6-54.7-42.4-104.9-80.8-146.4,99.3,111.2,92.3,281.2-15.9,383.9-108.2,102.6-278.3,100.7-384.2-4.3-51-50.9-70.9-125.2-52.2-194.7s73.1-123.9,142.7-142.5c-145.4,40.8-231,191-191.9,336.9,39.1,145.9,188.2,233.3,334.6,196,186.7-50.2,297.5-242.1,247.7-428.9Z" class="cls-4" data-sanitized-data-name="Path" data-name="Path" id="Path-6"></path>
+    </g>
+  </g>
+</svg>

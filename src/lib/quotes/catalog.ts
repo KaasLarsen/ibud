@@ -122,9 +122,12 @@ export type PartnerMeta = {
   name: string;
   notes: string;
   sellBaseUrl: string;
-  /** CSS accent for logo chip */
-  accent: string;
-  logoText: string;
+  /** Path under /public for partner mark */
+  logoSrc: string;
+  /** Background behind transparent logos */
+  logoBg: string;
+  /** How the mark should sit in the chip */
+  logoFit: "cover" | "contain";
   scrapingPolicy: ScrapingPolicy;
 };
 
@@ -134,8 +137,9 @@ export const PARTNERS: Record<PartnerId, PartnerMeta> = {
     name: "Green",
     notes: "Dansk butik · gratis fragt",
     sellBaseUrl: "https://green.dk/pages/saelg-iphone",
-    accent: "#1f7a4d",
-    logoText: "G",
+    logoSrc: "/partners/green.png",
+    logoBg: "#1d4943",
+    logoFit: "cover",
     scrapingPolicy: "caution",
   },
   swappie: {
@@ -143,8 +147,9 @@ export const PARTNERS: Record<PartnerId, PartnerMeta> = {
     name: "Swappie",
     notes: "Gratis forsendelse · pris låses 14 dage",
     sellBaseUrl: "https://swappie.com/dk/saelg/iphone/",
-    accent: "#ff5a36",
-    logoText: "S",
+    logoSrc: "/partners/swappie.png",
+    logoBg: "#ffccf2",
+    logoFit: "cover",
     scrapingPolicy: "allowed",
   },
   greenmind: {
@@ -152,8 +157,9 @@ export const PARTNERS: Record<PartnerId, PartnerMeta> = {
     name: "GreenMind",
     notes: "18 butikker i DK · vurdering i butik",
     sellBaseUrl: "https://greenmind.dk/saelg-din-enhed",
-    accent: "#0b6e4f",
-    logoText: "GM",
+    logoSrc: "/partners/greenmind.png",
+    logoBg: "#0a0a0a",
+    logoFit: "contain",
     scrapingPolicy: "allowed",
   },
   phonehero: {
@@ -161,8 +167,9 @@ export const PARTNERS: Record<PartnerId, PartnerMeta> = {
     name: "PhoneHero",
     notes: "Online vurdering · gratis forsendelse",
     sellBaseUrl: "https://phonehero.dk/saelg-din-gamle-mobil-til-os",
-    accent: "#1a56db",
-    logoText: "PH",
+    logoSrc: "/partners/phonehero.svg",
+    logoBg: "#ffffff",
+    logoFit: "cover",
     scrapingPolicy: "caution",
   },
   phonetrade: {
@@ -170,17 +177,19 @@ export const PARTNERS: Record<PartnerId, PartnerMeta> = {
     name: "Phonetrade",
     notes: "København · online eller butik",
     sellBaseUrl: "https://phonetrade.dk/pages/saelg-iphone",
-    accent: "#111827",
-    logoText: "PT",
+    logoSrc: "/partners/phonetrade.svg",
+    logoBg: "#ffffff",
+    logoFit: "contain",
     scrapingPolicy: "caution",
   },
   miphone: {
     id: "miphone",
     name: "MiPhone",
     notes: "Apple-fokus · hurtig udbetaling",
-    sellBaseUrl: "https://miphone.dk/saelg/",
-    accent: "#7c3aed",
-    logoText: "Mi",
+    sellBaseUrl: "https://miphone.dk/saelg/saelg-din-iphone/",
+    logoSrc: "/partners/miphone.png",
+    logoBg: "#0b1a12",
+    logoFit: "contain",
     scrapingPolicy: "allowed",
   },
 };
