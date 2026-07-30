@@ -140,7 +140,7 @@ async function launchBrowser(): Promise<Browser> {
   return chromium.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
-  });
+  }) as unknown as Browser;
 }
 
 /** Live scrape af én partner (lokal, worker eller Vercel serverless). */
