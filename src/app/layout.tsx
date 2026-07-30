@@ -38,6 +38,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="da" className={`${display.variable} ${body.variable} h-full`}>
+      <head>
+        <meta
+          name="google-site-verification"
+          content="q4j_T5gTl3h-40UuJUgx3YONit0PXSCXGbrnURb_Hso"
+        />
+      </head>
       <body className="min-h-full flex flex-col antialiased">
         <header className="site-header">
           <Link href="/" className="brand">
