@@ -69,7 +69,11 @@ async function scrapeSwappie(
     return baseResult("swappie", deepLink, { error: "Ukendt model" });
   }
 
-  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await page.goto(url, { waitUntil: "networkidle2", timeout: 45_000 }).catch(
+    async () => {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    },
+  );
   await sleep(2000);
   await dismissCookies(page);
   await sleep(2500);
@@ -161,6 +165,7 @@ async function scrapeSwappie(
   if (!selected) {
     const debug = await page.evaluate(() => ({
       url: location.href,
+      title: document.title,
       radios: Array.from(document.querySelectorAll('input[type="radio"]')).map(
         (el) => (el as HTMLInputElement).value,
       ),
@@ -168,6 +173,7 @@ async function scrapeSwappie(
         .map((l) => (l.textContent || "").trim())
         .filter(Boolean)
         .slice(0, 10),
+      body: (document.body?.innerText || "").slice(0, 500),
     }));
     return baseResult("swappie", deepLink, {
       error: `Kunne ikke vælge lager ${storageLabel} (${JSON.stringify(debug)})`,
