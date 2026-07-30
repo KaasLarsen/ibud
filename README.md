@@ -13,9 +13,7 @@ npm run dev
 
 Åbn [http://localhost:3000](http://localhost:3000).
 
-`SCRAPER_MODE=live` henter bud via Playwright fra partnernes sælg-flows. Brug `mock` kun til hurtig UI-udvikling — mock viser **ikke** rigtige priser.
-
-På Vercel skal `WORKER_URL` pege på Playwright-workeren (`npm run worker` / Docker), ellers returneres ingen pris.
+`SCRAPER_MODE=live` henter bud via Playwright fra partnernes sælg-flows (på Vercel via `@sparticuz/chromium`). Brug `mock` kun til hurtig UI-udvikling — mock viser **ikke** rigtige priser.
 
 ## Scripts
 

@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Page } from "playwright-core";
 
 /** Best-effort cookie consent dismissal across Danish retail sites. */
 export async function dismissCookieBanner(page: Page): Promise<void> {

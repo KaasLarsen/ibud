@@ -1,4 +1,4 @@
-import type { Browser } from "playwright";
+import type { Browser } from "playwright-core";
 import { greenAdapter } from "./green";
 import { greenmindAdapter } from "./greenmind";
 import { swappieAdapter } from "./swappie";
@@ -106,7 +106,35 @@ export async function fetchPartnerQuote(
   }
 }
 
+/**
+ * Launch Chromium:
+ * - Vercel/serverless: @sparticuz/chromium + playwright-core
+ * - Local/worker: full Playwright
+ */
 async function launchBrowser(): Promise<Browser> {
+  if (isServerlessRuntime()) {
+    const chromium = (await import("@sparticuz/chromium")).default;
+    const { chromium: playwrightChromium } = await import("playwright-core");
+
+    const executablePath = await chromium.executablePath();
+    // Lambda/Vercel needs shared libs next to the binary
+    if (executablePath) {
+      const libDir = executablePath.replace(/\/[^/]+$/, "");
+      process.env.LD_LIBRARY_PATH = [
+        libDir,
+        process.env.LD_LIBRARY_PATH,
+      ]
+        .filter(Boolean)
+        .join(":");
+    }
+
+    return playwrightChromium.launch({
+      args: chromium.args,
+      executablePath,
+      headless: true,
+    });
+  }
+
   const { chromium } = await import("playwright");
   return chromium.launch({
     headless: true,
@@ -114,21 +142,13 @@ async function launchBrowser(): Promise<Browser> {
   });
 }
 
-/** Live scrape af én partner (bruges lokalt uden remote worker). */
+/** Live scrape af én partner (lokal, worker eller Vercel serverless). */
 export async function fetchPartnerQuoteLive(
   partnerId: PartnerId,
   request: QuoteRequest,
 ): Promise<QuoteResult> {
   if (isMockMode()) {
     return mockQuote(partnerId, request);
-  }
-
-  if (isServerlessRuntime()) {
-    return unavailableQuote(
-      partnerId,
-      request,
-      "Live scrape kræver WORKER_URL på Vercel",
-    );
   }
 
   const browser = await launchBrowser();
@@ -142,15 +162,18 @@ export async function fetchPartnerQuoteLive(
 export async function fetchAllQuotesLive(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
-  if (isServerlessRuntime()) {
-    throw new Error(
-      "Playwright kan ikke køre på Vercel — sæt WORKER_URL til Playwright-workeren",
-    );
-  }
-
   const browser = await launchBrowser();
 
   try {
+    // På serverless: sekventielt for at holde hukommelse nede
+    if (isServerlessRuntime()) {
+      const out: QuoteResult[] = [];
+      for (const id of PARTNER_IDS) {
+        out.push(await fetchPartnerQuote(id, request, browser));
+      }
+      return out;
+    }
+
     return await Promise.all(
       PARTNER_IDS.map((id) => fetchPartnerQuote(id, request, browser)),
     );

@@ -7,7 +7,6 @@ import {
 import {
   hasWorker,
   isMockMode,
-  isServerlessRuntime,
 } from "@/lib/adapters/scraper-config";
 import { checkRateLimit, clientIp } from "@/lib/api/rate-limit";
 import { getCachedQuote, setCachedQuote } from "@/lib/quotes/cache";
@@ -125,7 +124,7 @@ export async function POST(req: Request) {
     return NextResponse.json(quote);
   }
 
-  // Remote Playwright worker (Vercel production)
+  // Remote Playwright worker hvis konfigureret
   if (hasWorker()) {
     try {
       const fromWorker = await fetchPartnerViaWorker(partnerId, request);
@@ -149,31 +148,21 @@ export async function POST(req: Request) {
     }
   }
 
-  // Lokal/dev: scrape direkte i processen (Playwright kan ikke køre på Vercel)
-  if (!isServerlessRuntime()) {
-    try {
-      const live = await fetchPartnerQuoteLive(partnerId, request);
-      if (live.amountDkk != null) {
-        await setCachedQuote(partnerId, request, live);
-      }
-      return NextResponse.json(live);
-    } catch (err) {
-      console.error("Local scrape error:", err);
-      return NextResponse.json(
-        unavailableQuote(
-          partnerId,
-          request,
-          err instanceof Error ? err.message : "Scrape fejl",
-        ),
-      );
+  // Live scrape i-processen (lokal Playwright eller Vercel + @sparticuz/chromium)
+  try {
+    const live = await fetchPartnerQuoteLive(partnerId, request);
+    if (live.amountDkk != null) {
+      await setCachedQuote(partnerId, request, live);
     }
+    return NextResponse.json(live);
+  } catch (err) {
+    console.error("Live scrape error:", err);
+    return NextResponse.json(
+      unavailableQuote(
+        partnerId,
+        request,
+        err instanceof Error ? err.message : "Scrape fejl",
+      ),
+    );
   }
-
-  return NextResponse.json(
-    unavailableQuote(
-      partnerId,
-      request,
-      "Live scrape kræver WORKER_URL — syntetiske priser er deaktiveret",
-    ),
-  );
 }

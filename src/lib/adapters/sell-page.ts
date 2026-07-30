@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Page } from "playwright-core";
 import { getModelById } from "../quotes/catalog";
 import { partnerDeepLink } from "../quotes/deep-links";
 import type { PartnerId, QuoteRequest, QuoteResult } from "../quotes/types";
