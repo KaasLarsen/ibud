@@ -77,13 +77,35 @@ async function scrapeSwappie(
   // Hop direkte til lager-trin hvis muligt (undgår model-hydreringsrace)
   const memoryUrl = url.replace(/\/?$/, "/memory/");
   if (!page.url().includes("/memory/")) {
-    await page.goto(memoryUrl, { waitUntil: "domcontentloaded", timeout: 30_000 }).catch(() => undefined);
-    await sleep(1500);
+    await page.goto(memoryUrl, {
+      waitUntil: "networkidle2",
+      timeout: 45_000,
+    }).catch(async () => {
+      await page.goto(memoryUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      });
+    });
+    await sleep(2000);
     await dismissCookies(page);
   }
 
+  // Vent til React har renderet lager-valg
+  for (let i = 0; i < 40; i++) {
+    const ready = await page.evaluate(() => {
+      const text = document.body?.innerText || "";
+      return (
+        /128\s*GB/i.test(text) ||
+        /Lagerplads/i.test(text) ||
+        document.querySelectorAll('input[type="radio"]').length > 0
+      );
+    });
+    if (ready) break;
+    await sleep(500);
+  }
+
   if (!page.url().includes("/memory/")) {
-    if (!(await waitForEnabledButton(page, /fortsæt/i, 25_000))) {
+    if (!(await waitForEnabledButton(page, /fortsæt/i, 15_000))) {
       return baseResult("swappie", deepLink, {
         error: "Swappie-flow blev ikke klar",
       });
