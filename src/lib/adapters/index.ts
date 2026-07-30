@@ -1,4 +1,4 @@
-import { chromium, type Browser } from "playwright";
+import type { Browser } from "playwright";
 import { greenAdapter } from "./green";
 import { greenmindAdapter } from "./greenmind";
 import { swappieAdapter } from "./swappie";
@@ -167,6 +167,7 @@ export async function fetchPartnerQuote(
 export async function fetchAllQuotesLive(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
+  const { chromium } = await import("playwright");
   const browser = await chromium.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],

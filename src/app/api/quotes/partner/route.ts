@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { chromium } from "playwright";
 import {
   adapters,
   mockQuote,
@@ -84,6 +83,7 @@ export async function POST(req: Request) {
     return NextResponse.json(quote);
   }
 
+  const { chromium } = await import("playwright");
   let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
   try {
     browser = await chromium.launch({
