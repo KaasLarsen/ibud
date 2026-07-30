@@ -152,6 +152,11 @@ export async function fetchPartnerQuoteLive(
     return mockQuote(partnerId, request);
   }
 
+  if (isServerlessRuntime()) {
+    const { fetchPartnerQuoteServerless } = await import("./serverless");
+    return fetchPartnerQuoteServerless(partnerId, request);
+  }
+
   const browser = await launchBrowser();
   try {
     return await fetchPartnerQuote(partnerId, request, browser);

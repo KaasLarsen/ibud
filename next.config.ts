@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
 const chromiumIncludes = [
-  "./node_modules/playwright-core/**/*",
+  "./node_modules/puppeteer-core/**/*",
   "./node_modules/@sparticuz/chromium/**/*",
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@sparticuz/chromium", "playwright-core"],
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   outputFileTracingIncludes: {
     "/api/quotes/partner": chromiumIncludes,
     "/api/quotes": chromiumIncludes,
