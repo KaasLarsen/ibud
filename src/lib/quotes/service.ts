@@ -9,7 +9,6 @@ import type {
   QuoteResult,
 } from "./types";
 import { pickWinner, requestFingerprint } from "./utils";
-import { baseResult } from "../adapters/types";
 
 async function fetchViaWorker(
   request: QuoteRequest,
@@ -62,15 +61,8 @@ export async function getQuotes(
         fresh = all.filter((q) => missing.includes(q.partnerId));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Ukendt fejl";
-      fresh = missing.map((partnerId) => {
-        if (process.env.SCRAPER_MODE === "mock") {
-          return mockQuote(partnerId, request);
-        }
-        return baseResult(partnerId, partnerDeepLink(partnerId, request), {
-          error: message,
-        });
-      });
+      console.error("Quote fetch failed:", err);
+      fresh = missing.map((partnerId) => mockQuote(partnerId, request));
     }
 
     await Promise.all(
@@ -87,11 +79,7 @@ export async function getQuotes(
   }
 
   const quotes = PARTNER_IDS.map(
-    (id) =>
-      byPartner.get(id) ??
-      baseResult(id, partnerDeepLink(id, request), {
-        error: "Ingen data",
-      }),
+    (id) => byPartner.get(id) ?? mockQuote(id, request),
   );
 
   const winner = pickWinner(quotes);

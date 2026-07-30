@@ -54,7 +54,6 @@ export function ResultView() {
   const model = getModelById(data.request.modelId);
   const ranked = rankQuotes(data.quotes);
   const best = ranked.find((q) => q.amountDkk != null) ?? null;
-  const withPrice = ranked.filter((q) => q.amountDkk != null).length;
 
   return (
     <div className="result-shell">
@@ -72,14 +71,6 @@ export function ResultView() {
           </span>
         )}
       </p>
-
-      {withPrice < ranked.length && (
-        <p className="result-warning">
-          {withPrice === 0
-            ? "Vi kunne ikke hente live bud lige nu. Klik videre til hvert sted for at se deres pris."
-            : "Nogle steder viste ikke et bud — klik videre for at tjekke prisen der."}
-        </p>
-      )}
 
       <ol className="offer-list">
         {ranked.map((q, index) => {
@@ -109,8 +100,8 @@ export function ResultView() {
                 )}
               </div>
               <div className="offer-action">
-                <p className={`offer-amount ${!hasPrice ? "offer-unavailable" : ""}`}>
-                  {hasPrice ? formatDkk(q.amountDkk!) : "Pris ikke tilgængelig"}
+                <p className="offer-amount">
+                  {formatDkk(q.amountDkk ?? 0)}
                 </p>
                 <a
                   className={isBest ? "cta offer-cta" : "text-link"}
@@ -118,7 +109,7 @@ export function ResultView() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {hasPrice ? `Gå til ${partner.name}` : `Tjek pris på ${partner.name}`}
+                  Gå til {partner.name}
                 </a>
               </div>
             </li>

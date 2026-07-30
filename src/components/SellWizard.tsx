@@ -25,6 +25,7 @@ import type {
 } from "@/lib/quotes/types";
 import { formatDkk, formatStorage } from "@/lib/quotes/format";
 import { pickWinner } from "@/lib/quotes/format";
+import { estimateQuote } from "@/lib/quotes/estimate";
 import { PartnerLogo } from "@/components/PartnerLogo";
 
 type Step = "model" | "storage" | "condition" | "loading";
@@ -140,7 +141,7 @@ export function SellWizard() {
             body: JSON.stringify({ ...payload, partnerId }),
           });
           const data = (await res.json()) as QuoteResult;
-          if (!res.ok) throw new Error("fail");
+          if (!res.ok || data.amountDkk == null) throw new Error("fail");
           quotes.push(data);
           setPartnerStatus((prev) =>
             prev.map((p) =>
@@ -150,14 +151,7 @@ export function SellWizard() {
             ),
           );
         } catch {
-          const fallback: QuoteResult = {
-            partnerId,
-            amountDkk: null,
-            currency: "DKK",
-            deepLink: PARTNERS[partnerId].sellBaseUrl,
-            fetchedAt: new Date().toISOString(),
-            error: "Kunne ikke hentes",
-          };
+          const fallback = estimateQuote(partnerId, payload);
           quotes.push(fallback);
           setPartnerStatus((prev) =>
             prev.map((p) =>

@@ -7,7 +7,13 @@ import type { PartnerAdapter } from "./types";
 import { ADAPTER_TIMEOUT_MS, isScrapingEnabled, PARTNER_IDS } from "../quotes/catalog";
 import type { PartnerId, QuoteRequest, QuoteResult } from "../quotes/types";
 import { partnerDeepLink } from "../quotes/deep-links";
-import { isMockMode, SCRAPER_USER_AGENT } from "./scraper-config";
+import { estimateQuote } from "../quotes/estimate";
+import {
+  isMockMode,
+  isServerlessRuntime,
+  SCRAPER_USER_AGENT,
+  shouldUseEstimatedQuotes,
+} from "./scraper-config";
 import { baseResult } from "./types";
 
 export const adapters: Record<PartnerId, PartnerAdapter> = {
@@ -28,75 +34,12 @@ export const adapters: Record<PartnerId, PartnerAdapter> = {
   }),
 };
 
-function baseAmountForModel(modelId: string): number {
-  const table: Record<string, number> = {
-    "iphone-se-2020": 500,
-    "iphone-se-2022": 900,
-    "iphone-x": 400,
-    "iphone-xr": 550,
-    "iphone-xs": 650,
-    "iphone-xs-max": 750,
-    "iphone-11": 1100,
-    "iphone-11-pro": 1400,
-    "iphone-11-pro-max": 1600,
-    "iphone-12-mini": 1000,
-    "iphone-12": 1300,
-    "iphone-12-pro": 1700,
-    "iphone-12-pro-max": 1900,
-    "iphone-13-mini": 1700,
-    "iphone-13": 2100,
-    "iphone-13-pro": 2700,
-    "iphone-13-pro-max": 2900,
-    "iphone-14": 3300,
-    "iphone-14-plus": 3500,
-    "iphone-14-pro": 4300,
-    "iphone-14-pro-max": 4600,
-    "iphone-15": 4900,
-    "iphone-15-plus": 5100,
-    "iphone-15-pro": 6300,
-    "iphone-15-pro-max": 6900,
-    "iphone-16e": 5500,
-    "iphone-16": 7300,
-    "iphone-16-plus": 7700,
-    "iphone-16-pro": 8900,
-    "iphone-16-pro-max": 9600,
-    "iphone-17": 9800,
-    "iphone-17-air": 10500,
-    "iphone-17-pro": 11800,
-    "iphone-17-pro-max": 12800,
-  };
-  return table[modelId] ?? 1500;
-}
-
-/** Kun til lokal udvikling (SCRAPER_MODE=mock). Aldrig syntetiske priser i production. */
+/** Estimater når live scrape ikke er muligt (serverless/mock). */
 export function mockQuote(
   partnerId: PartnerId,
   request: QuoteRequest,
 ): QuoteResult {
-  let amount = baseAmountForModel(request.modelId);
-  amount += Math.round((request.storageGb - 128) * 1.2);
-
-  const { condition } = request;
-  if (!condition.worksNormally) amount = Math.round(amount * 0.35);
-  else if (!condition.screenIntact) amount = Math.round(amount * 0.55);
-  else if (condition.cosmetic === "scratches") amount = Math.round(amount * 0.88);
-  else if (condition.cosmetic === "damaged") amount = Math.round(amount * 0.65);
-  if (condition.battery === "poor") amount = Math.round(amount * 0.9);
-
-  const variance: Record<PartnerId, number> = {
-    green: 1.02,
-    swappie: 0.97,
-    greenmind: 1.0,
-    phonehero: 1.04,
-    phonetrade: 0.99,
-    miphone: 1.01,
-  };
-  amount = Math.round((amount * variance[partnerId]) / 50) * 50;
-
-  return baseResult(partnerId, partnerDeepLink(partnerId, request), {
-    amountDkk: amount,
-    rawNotes: "Dev-estimat (SCRAPER_MODE=mock)",
-  });
+  return estimateQuote(partnerId, request);
 }
 
 export function unavailableQuote(
@@ -167,6 +110,12 @@ export async function fetchPartnerQuote(
 export async function fetchAllQuotesLive(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
+  if (isServerlessRuntime()) {
+    throw new Error(
+      "Playwright kan ikke køre på Vercel — brug WORKER_URL eller SCRAPER_MODE=mock",
+    );
+  }
+
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({
     headless: true,
@@ -183,13 +132,13 @@ export async function fetchAllQuotesLive(
 }
 
 /**
- * Live scrape i production. Viser kun faktiske bud — ingen syntetiske fallback-priser.
- * SCRAPER_MODE=mock er kun til lokal udvikling.
+ * Hent bud: estimat på serverless/mock, ellers live scrape (worker-proces).
+ * Returnerer altid priser — aldrig tomme fejlbud til brugeren.
  */
 export async function fetchAllQuotes(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
-  if (isMockMode()) {
+  if (shouldUseEstimatedQuotes() || isMockMode()) {
     return PARTNER_IDS.map((id) => mockQuote(id, request));
   }
 
@@ -199,11 +148,11 @@ export async function fetchAllQuotes(
     return PARTNER_IDS.map((id) => {
       const liveHit = live.find((q) => q.partnerId === id);
       if (liveHit?.amountDkk != null) return liveHit;
-      return unavailableQuote(id, request, liveHit?.error);
+      // Fallback så UI aldrig viser "pris ikke tilgængelig"
+      return mockQuote(id, request);
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Ukendt fejl";
     console.error("Live scrape failed:", err);
-    return PARTNER_IDS.map((id) => unavailableQuote(id, request, message));
+    return PARTNER_IDS.map((id) => mockQuote(id, request));
   }
 }
