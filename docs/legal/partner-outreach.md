@@ -38,7 +38,7 @@ info@ibud.dk · https://ibud.dk
 
 | Partner | Salg-side | Kontakt (find på deres site) |
 |---------|-----------|------------------------------|
-| Green | https://green.dk/pages/saelg-iphone | info@green.dk (tjek site) |
+| Green | https://green.dk/pages/saelg-iphone | Partner-Ads aktiv (se green-partnership.md) |
 | Swappie | https://swappie.com/dk/saelg/iphone/ | partners@swappie.com (tjek site) |
 | GreenMind | https://greenmind.dk/saelg-din-enhed | kontakt via site |
 | PhoneHero | https://phonehero.dk/saelg-din-gamle-mobil-til-os | kontakt via site |

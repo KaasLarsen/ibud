@@ -1,0 +1,1 @@
+export { applyGreenTracking } from "./tracking";

@@ -6,7 +6,7 @@ Gennemgang udført: juli 2026. Opdater ved ændringer i partner-politikker.
 
 | Partner | robots.txt | Scraping-policy i kode | Vurdering |
 |---------|------------|------------------------|-----------|
-| Green | [green.dk/robots.txt](https://green.dk/robots.txt) | `caution` | Shopify-agent-politik advarer mod browser-automation på checkout. Vi henter kun bud fra salg-side (`/pages/saelg-iphone`), ikke checkout. Kontakt anbefales. |
+| Green | [green.dk/robots.txt](https://green.dk/robots.txt) | `caution` | Shopify-agent-politik advarer mod browser-automation på checkout. Vi henter kun bud fra salg-side (`/pages/saelg-iphone`), ikke checkout. Outbound-links går via Partner-Ads (8 % af køb). Se [green-partnership.md](./green-partnership.md). |
 | Swappie | [swappie.com/robots.txt](https://swappie.com/robots.txt) | `allowed` | Ingen eksplicit forbud mod salg-sider. Blokerer wp-admin og filtrerede URL'er. |
 | GreenMind | [greenmind.dk/robots.txt](https://greenmind.dk/robots.txt) | `allowed` | Disallow checkout/cart/account — salg-flow er tilladt. |
 | PhoneHero | Ingen robots.txt (404) | `caution` | Ukendt — kontakt partner for afklaring. |

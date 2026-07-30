@@ -1,6 +1,9 @@
 import type { Page } from "playwright";
 import { getModelById } from "../quotes/catalog";
-import { partnerDeepLink } from "../quotes/deep-links";
+import {
+  partnerDeepLink,
+  partnerDestinationUrl,
+} from "../quotes/deep-links";
 import type { QuoteRequest, QuoteResult } from "../quotes/types";
 import { baseResult, parseDkkAmount, type PartnerAdapter } from "./types";
 
@@ -12,9 +15,10 @@ async function fetchGreenQuote(
   page: Page,
 ): Promise<QuoteResult> {
   const model = getModelById(request.modelId);
+  const scrapeUrl = partnerDestinationUrl("green", request);
   const deepLink = partnerDeepLink("green", request);
 
-  await page.goto(deepLink, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.goto(scrapeUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
 
   for (const label of ["Accepter", "Acceptér", "Tillad alle", "OK"]) {
     const btn = page.getByRole("button", { name: new RegExp(label, "i") });

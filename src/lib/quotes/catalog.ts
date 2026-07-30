@@ -135,7 +135,7 @@ export const PARTNERS: Record<PartnerId, PartnerMeta> = {
   green: {
     id: "green",
     name: "Green",
-    notes: "Dansk butik · gratis fragt",
+    notes: "Dansk butik · gratis fragt · Partner-Ads",
     sellBaseUrl: "https://green.dk/pages/saelg-iphone",
     logoSrc: "/partners/green.png",
     logoBg: "#1d4943",

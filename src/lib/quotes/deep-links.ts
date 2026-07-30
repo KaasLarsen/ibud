@@ -1,3 +1,4 @@
+import { applyGreenTracking } from "@/lib/partners/green/tracking";
 import { getModelById, PARTNERS } from "./catalog";
 import type { PartnerId, QuoteRequest } from "./types";
 
@@ -18,10 +19,9 @@ function phonetradeSellSlug(modelId: string): string {
 }
 
 /**
- * Deep links that land on the partner's sell-flow for the chosen iPhone model.
- * Only use URL patterns we know exist for that model.
+ * Raw partner destination (no affiliate wrap). Use for scraping / page.goto.
  */
-export function partnerDeepLink(
+export function partnerDestinationUrl(
   partnerId: PartnerId,
   request: QuoteRequest,
 ): string {
@@ -40,22 +40,30 @@ export function partnerDeepLink(
       return `https://phonetrade.dk/pages/saelg-${phonetradeSellSlug(model.id)}`;
 
     case "swappie":
-      // Confirmed: /dk/saelg/iphone/iphone-15-pro/
       return `https://swappie.com/dk/saelg/iphone/${model.swappieSlug}/`;
 
     case "greenmind":
-      // No reliable model deep-link — open sell tool (user picks model there)
       return PARTNERS.greenmind.sellBaseUrl;
 
     case "phonehero":
-      // No reliable model deep-link — open sell tool (user picks model there)
       return PARTNERS.phonehero.sellBaseUrl;
 
     case "miphone":
-      // iPhone sell page (model still picked in form; better than generic hub)
       return "https://miphone.dk/saelg/saelg-din-iphone/";
 
     default:
       return fallback;
   }
+}
+
+/**
+ * User-facing deep link (Green goes through Partner-Ads tracking).
+ */
+export function partnerDeepLink(
+  partnerId: PartnerId,
+  request: QuoteRequest,
+): string {
+  const destination = partnerDestinationUrl(partnerId, request);
+  if (partnerId === "green") return applyGreenTracking(destination);
+  return destination;
 }

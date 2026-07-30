@@ -1,6 +1,7 @@
 import { PARTNERS } from "./catalog";
 import type { PartnerId, QuoteRequest, QuoteResult } from "./types";
 import { partnerDeepLink } from "./deep-links";
+import { applyGreenTracking } from "@/lib/partners/green/tracking";
 
 function baseAmountForModel(modelId: string): number {
   const table: Record<string, number> = {
@@ -78,5 +79,7 @@ export function estimateQuote(
 }
 
 export function estimateDeepLinkFallback(partnerId: PartnerId): string {
-  return PARTNERS[partnerId].sellBaseUrl;
+  const base = PARTNERS[partnerId].sellBaseUrl;
+  if (partnerId === "green") return applyGreenTracking(base);
+  return base;
 }
