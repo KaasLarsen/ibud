@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   ),
+  verification: {
+    google: "q4j_T5gTl3h-40UuJUgx3YONit0PXSCXGbrnURb_Hso",
+  },
 };
 
 export default function RootLayout({
