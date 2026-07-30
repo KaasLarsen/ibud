@@ -176,7 +176,9 @@ async function scrapeSwappie(
       body: (document.body?.innerText || "").slice(0, 500),
     }));
     return baseResult("swappie", deepLink, {
-      error: `Kunne ikke vælge lager ${storageLabel} (${JSON.stringify(debug)})`,
+      error: debug.body.includes("sikkerhedsverificering")
+        ? "Swappie blokerede scrapen (Cloudflare) — kræver dedikeret worker"
+        : `Kunne ikke vælge lager ${storageLabel}`,
     });
   }
 
