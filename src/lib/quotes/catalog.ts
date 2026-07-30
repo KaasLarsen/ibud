@@ -201,4 +201,4 @@ export function isScrapingEnabled(partnerId: PartnerId): boolean {
 export const PARTNER_IDS = Object.keys(PARTNERS) as PartnerId[];
 
 export const CACHE_TTL_HOURS = 8;
-export const ADAPTER_TIMEOUT_MS = 45_000;
+export const ADAPTER_TIMEOUT_MS = 75_000;

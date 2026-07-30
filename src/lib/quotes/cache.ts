@@ -79,6 +79,9 @@ export async function setCachedQuote(
   request: QuoteRequest,
   result: QuoteResult,
 ): Promise<void> {
+  // Cache kun rigtige live-priser — aldrig fejl eller tomme bud
+  if (result.amountDkk == null) return;
+
   const key = cacheKey(partnerId, request);
   const fetchedAt = result.fetchedAt || new Date().toISOString();
   const expiresAt = new Date(

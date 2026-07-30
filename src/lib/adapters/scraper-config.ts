@@ -16,10 +16,11 @@ export function hasWorker(): boolean {
 }
 
 /**
- * Brug estimerede bud når live scrape ikke er muligt:
- * - eksplicit mock
- * - serverless uden remote worker
+ * Live scrape er muligt når:
+ * - eksplicit mock er slået fra, OG
+ * - enten remote worker findes, eller vi ikke er på serverless
  */
-export function shouldUseEstimatedQuotes(): boolean {
-  return isMockMode() || (isServerlessRuntime() && !hasWorker());
+export function canScrapeLive(): boolean {
+  if (isMockMode()) return false;
+  return hasWorker() || !isServerlessRuntime();
 }

@@ -61,9 +61,13 @@ export function ResultView() {
         {model?.name ?? data.request.modelId} ·{" "}
         {formatStorage(data.request.storageGb)}
       </p>
-      <h1 className="result-title">Bedste bud først</h1>
+      <h1 className="result-title">
+        {best ? "Bedste bud først" : "Ingen bud lige nu"}
+      </h1>
       <p className="muted result-lede">
-        Rangeret efter hvor meget du får — højest øverst.
+        {best
+          ? "Rangeret efter hvor meget du får — højest øverst."
+          : "Vi kunne ikke hente live-priser lige nu. Prøv igen, eller åbn stedet direkte."}
         {data.fetchedAt && (
           <span className="result-freshness">
             {" "}
@@ -101,7 +105,7 @@ export function ResultView() {
               </div>
               <div className="offer-action">
                 <p className="offer-amount">
-                  {formatDkk(q.amountDkk ?? 0)}
+                  {hasPrice ? formatDkk(q.amountDkk!) : "Ikke tilgængelig"}
                 </p>
                 <a
                   className={isBest ? "cta offer-cta" : "text-link"}
@@ -109,7 +113,7 @@ export function ResultView() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Gå til {partner.name}
+                  {hasPrice ? `Gå til ${partner.name}` : `Åbn ${partner.name}`}
                 </a>
               </div>
             </li>

@@ -13,11 +13,13 @@ export function parseDkkAmount(text: string): number | null {
     .replace(/DKK/gi, "")
     .trim();
 
-  // Match e.g. 3.200 or 3200 or 3.200,00
-  const match = cleaned.match(/(\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{2})?/);
+  // Match e.g. 3.200 | 3 200 | 3200 | 3.200,00 | 2 841 kr
+  const match = cleaned.match(
+    /(\d{1,3}(?:[.\s]\d{3})+|\d+)(?:,\d{2})?/,
+  );
   if (!match) return null;
 
-  const digits = match[1].replace(/\./g, "");
+  const digits = match[1].replace(/[.\s]/g, "");
   const value = Number.parseInt(digits, 10);
   return Number.isFinite(value) ? value : null;
 }

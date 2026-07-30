@@ -25,14 +25,13 @@ import type {
 } from "@/lib/quotes/types";
 import { formatDkk, formatStorage } from "@/lib/quotes/format";
 import { pickWinner } from "@/lib/quotes/format";
-import { estimateQuote } from "@/lib/quotes/estimate";
 import { PartnerLogo } from "@/components/PartnerLogo";
 
 type Step = "model" | "storage" | "condition" | "loading";
 
 type PartnerStatus = {
   partnerId: PartnerId;
-  state: "waiting" | "loading" | "done";
+  state: "waiting" | "loading" | "done" | "failed";
   quote?: QuoteResult;
 };
 
@@ -147,22 +146,33 @@ export function SellWizard({ initialModelId }: SellWizardProps) {
             body: JSON.stringify({ ...payload, partnerId }),
           });
           const data = (await res.json()) as QuoteResult;
-          if (!res.ok || data.amountDkk == null) throw new Error("fail");
+          if (!res.ok) throw new Error("fail");
           quotes.push(data);
           setPartnerStatus((prev) =>
             prev.map((p) =>
               p.partnerId === partnerId
-                ? { ...p, state: "done", quote: data }
+                ? {
+                    ...p,
+                    state: data.amountDkk != null ? "done" : "failed",
+                    quote: data,
+                  }
                 : p,
             ),
           );
         } catch {
-          const fallback = estimateQuote(partnerId, payload);
-          quotes.push(fallback);
+          const failed: QuoteResult = {
+            partnerId,
+            amountDkk: null,
+            currency: "DKK",
+            deepLink: PARTNERS[partnerId].sellBaseUrl,
+            fetchedAt: new Date().toISOString(),
+            error: "Bud kunne ikke hentes",
+          };
+          quotes.push(failed);
           setPartnerStatus((prev) =>
             prev.map((p) =>
               p.partnerId === partnerId
-                ? { ...p, state: "done", quote: fallback }
+                ? { ...p, state: "failed", quote: failed }
                 : p,
             ),
           );
@@ -435,9 +445,9 @@ export function SellWizard({ initialModelId }: SellWizardProps) {
                   {p.state === "waiting" && "Venter"}
                   {p.state === "loading" && "Henter…"}
                   {p.state === "done" &&
-                    (p.quote?.amountDkk != null
-                      ? formatDkk(p.quote.amountDkk)
-                      : "—")}
+                    p.quote?.amountDkk != null &&
+                    formatDkk(p.quote.amountDkk)}
+                  {p.state === "failed" && "Ikke tilgængelig"}
                 </span>
               </li>
             ))}

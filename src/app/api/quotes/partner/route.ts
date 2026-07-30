@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { mockQuote } from "@/lib/adapters";
+import {
+  fetchPartnerQuoteLive,
+  mockQuote,
+  unavailableQuote,
+} from "@/lib/adapters";
 import {
   hasWorker,
   isMockMode,
-  shouldUseEstimatedQuotes,
+  isServerlessRuntime,
 } from "@/lib/adapters/scraper-config";
 import { checkRateLimit, clientIp } from "@/lib/api/rate-limit";
 import { getCachedQuote, setCachedQuote } from "@/lib/quotes/cache";
@@ -31,7 +35,7 @@ async function fetchPartnerViaWorker(
       "Content-Type": "application/json",
       ...(secret ? { Authorization: `Bearer ${secret}` } : {}),
     },
-    body: JSON.stringify(request),
+    body: JSON.stringify({ ...request, partnerId }),
   });
 
   if (!res.ok) {
@@ -48,17 +52,9 @@ async function fetchPartnerViaWorker(
   };
 }
 
-function pricedQuote(
-  partnerId: PartnerId,
-  request: ReturnType<typeof quoteRequestSchema.parse>,
-): QuoteResult {
-  return mockQuote(partnerId, request);
-}
-
 export async function POST(req: Request) {
   const rate = checkRateLimit(`quotes-partner:${clientIp(req)}`, 120);
   if (!rate.allowed) {
-    // Soft-fail: returnér stadig et bud, så UI aldrig crasher
     try {
       const body = await req.json();
       const partnerId = (body as { partnerId?: string }).partnerId as
@@ -66,7 +62,13 @@ export async function POST(req: Request) {
         | undefined;
       const parsed = quoteRequestSchema.safeParse(body);
       if (partnerId && PARTNER_IDS.includes(partnerId) && parsed.success) {
-        return NextResponse.json(pricedQuote(partnerId, parsed.data));
+        return NextResponse.json(
+          unavailableQuote(
+            partnerId,
+            parsed.data,
+            "For mange forespørgsler — prøv igen om lidt",
+          ),
+        );
       }
     } catch {
       // fall through
@@ -108,7 +110,6 @@ export async function POST(req: Request) {
 
   const cached = await getCachedQuote(partnerId, request);
   if (cached?.amountDkk != null) {
-    await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
     return NextResponse.json({
       ...cached,
       deepLink: partnerDeepLink(partnerId, request),
@@ -116,26 +117,63 @@ export async function POST(req: Request) {
     });
   }
 
-  // Playwright må aldrig køre på Vercel — kun mock eller remote worker
-  if (shouldUseEstimatedQuotes() || isMockMode() || !hasWorker()) {
-    await new Promise((r) => setTimeout(r, 1200 + Math.random() * 1200));
-    const quote = pricedQuote(partnerId, request);
+  // Eksplicit mock — kun lokal UI-udvikling
+  if (isMockMode()) {
+    await new Promise((r) => setTimeout(r, 400 + Math.random() * 400));
+    const quote = mockQuote(partnerId, request);
     await setCachedQuote(partnerId, request, quote);
     return NextResponse.json(quote);
   }
 
-  try {
-    const fromWorker = await fetchPartnerViaWorker(partnerId, request);
-    if (fromWorker?.amountDkk != null) {
-      await setCachedQuote(partnerId, request, fromWorker);
-      return NextResponse.json(fromWorker);
+  // Remote Playwright worker (Vercel production)
+  if (hasWorker()) {
+    try {
+      const fromWorker = await fetchPartnerViaWorker(partnerId, request);
+      if (fromWorker?.amountDkk != null) {
+        await setCachedQuote(partnerId, request, fromWorker);
+        return NextResponse.json(fromWorker);
+      }
+      const failed =
+        fromWorker ??
+        unavailableQuote(partnerId, request, "Worker returnerede ingen pris");
+      return NextResponse.json(failed);
+    } catch (err) {
+      console.error("Partner worker error:", err);
+      return NextResponse.json(
+        unavailableQuote(
+          partnerId,
+          request,
+          err instanceof Error ? err.message : "Worker fejl",
+        ),
+      );
     }
-  } catch (err) {
-    console.error("Partner worker error:", err);
   }
 
-  // Altid et bud — aldrig null-pris til brugeren
-  const fallback = pricedQuote(partnerId, request);
-  await setCachedQuote(partnerId, request, fallback);
-  return NextResponse.json(fallback);
+  // Lokal/dev: scrape direkte i processen (Playwright kan ikke køre på Vercel)
+  if (!isServerlessRuntime()) {
+    try {
+      const live = await fetchPartnerQuoteLive(partnerId, request);
+      if (live.amountDkk != null) {
+        await setCachedQuote(partnerId, request, live);
+      }
+      return NextResponse.json(live);
+    } catch (err) {
+      console.error("Local scrape error:", err);
+      return NextResponse.json(
+        unavailableQuote(
+          partnerId,
+          request,
+          err instanceof Error ? err.message : "Scrape fejl",
+        ),
+      );
+    }
+  }
+
+  return NextResponse.json(
+    unavailableQuote(
+      partnerId,
+      request,
+      "Live scrape kræver WORKER_URL — syntetiske priser er deaktiveret",
+    ),
+  );
 }

@@ -1,4 +1,9 @@
-import { fetchAllQuotes, mockQuote } from "../adapters";
+import {
+  fetchAllQuotes,
+  mockQuote,
+  unavailableQuote,
+} from "../adapters";
+import { isMockMode } from "../adapters/scraper-config";
 import { getCachedQuote, logQuoteRun, setCachedQuote } from "./cache";
 import { PARTNER_IDS } from "./catalog";
 import { partnerDeepLink } from "./deep-links";
@@ -42,7 +47,7 @@ export async function getQuotes(
 
   for (const partnerId of PARTNER_IDS) {
     const hit = await getCachedQuote(partnerId, request);
-    if (hit) cached.push(hit);
+    if (hit?.amountDkk != null) cached.push(hit);
     else missing.push(partnerId);
   }
 
@@ -62,11 +67,21 @@ export async function getQuotes(
       }
     } catch (err) {
       console.error("Quote fetch failed:", err);
-      fresh = missing.map((partnerId) => mockQuote(partnerId, request));
+      fresh = missing.map((partnerId) =>
+        isMockMode()
+          ? mockQuote(partnerId, request)
+          : unavailableQuote(
+              partnerId,
+              request,
+              err instanceof Error ? err.message : "Kunne ikke hente bud",
+            ),
+      );
     }
 
     await Promise.all(
-      fresh.map((result) => setCachedQuote(result.partnerId, request, result)),
+      fresh
+        .filter((result) => result.amountDkk != null)
+        .map((result) => setCachedQuote(result.partnerId, request, result)),
     );
   }
 
@@ -79,7 +94,11 @@ export async function getQuotes(
   }
 
   const quotes = PARTNER_IDS.map(
-    (id) => byPartner.get(id) ?? mockQuote(id, request),
+    (id) =>
+      byPartner.get(id) ??
+      (isMockMode()
+        ? mockQuote(id, request)
+        : unavailableQuote(id, request, "Bud ikke tilgængeligt")),
   );
 
   const winner = pickWinner(quotes);

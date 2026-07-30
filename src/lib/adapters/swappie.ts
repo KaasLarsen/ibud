@@ -1,11 +1,16 @@
 import type { Page } from "playwright";
 import { getModelById } from "../quotes/catalog";
-import { partnerDeepLink } from "../quotes/deep-links";
+import {
+  partnerDeepLink,
+  partnerDestinationUrl,
+} from "../quotes/deep-links";
 import type { QuoteRequest, QuoteResult } from "../quotes/types";
+import { dismissCookieBanner, domClickButton } from "./browser-helpers";
 import { baseResult, parseDkkAmount, type PartnerAdapter } from "./types";
 
 /**
- * Swappie sell flow: /dk/saelg/iphone/{slug}/
+ * Swappie sell flow: /dk/saelg/iphone/{slug}/ → memory → …
+ * Pris: "Estimeret værdi: 2 841 kr"
  */
 async function fetchSwappieQuote(
   request: QuoteRequest,
@@ -13,155 +18,193 @@ async function fetchSwappieQuote(
 ): Promise<QuoteResult> {
   const model = getModelById(request.modelId);
   const deepLink = partnerDeepLink("swappie", request);
+  const scrapeUrl = partnerDestinationUrl("swappie", request);
 
   if (!model) {
     return baseResult("swappie", deepLink, { error: "Ukendt model" });
   }
 
-  await page.goto(deepLink, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.goto(scrapeUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForTimeout(1_500);
+  await dismissCookieBanner(page);
+  await page.waitForTimeout(1_500);
 
-  // Dismiss cookie banners if present
-  for (const label of ["Accepter", "Acceptér", "Accept all", "Tillad alle"]) {
-    const btn = page.getByRole("button", { name: new RegExp(label, "i") });
-    if (await btn.first().isVisible({ timeout: 1500 }).catch(() => false)) {
-      await btn.first().click().catch(() => undefined);
-      break;
-    }
-  }
-
-  // Continue past model step if needed
-  const continueBtn = page.getByRole("button", { name: /fortsæt/i });
-  if (await continueBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-    await continueBtn.first().click().catch(() => undefined);
-  }
-
-  // Select storage
-  const storageLabel =
-    request.storageGb >= 1024
-      ? `${request.storageGb / 1024} TB`
-      : `${request.storageGb} GB`;
-
-  const storageOption = page.getByText(storageLabel, { exact: true }).first();
-  if (await storageOption.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await storageOption.click();
-  }
-
-  if (await continueBtn.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-    await continueBtn.first().click().catch(() => undefined);
-  }
-
-  // Answer condition questions based on normalized condition
-  await answerYesNo(page, request.condition.worksNormally);
-  await answerYesNo(page, request.condition.screenIntact);
-  await answerBattery(page, request.condition.battery === "ok");
-  await answerCosmetic(page, request.condition.cosmetic);
-
-  // Keep clicking continue / answering until estimate appears
-  for (let i = 0; i < 8; i++) {
-    const amount = await readEstimate(page);
-    if (amount !== null) {
-      return baseResult("swappie", deepLink, {
-        amountDkk: amount,
-        rawNotes: "Estimat fra Swappie sælg-flow",
-      });
-    }
-
-    const yes = page.getByRole("button", { name: /^(ja|yes)$/i });
-    const no = page.getByRole("button", { name: /^(nej|no)$/i });
-    if (await yes.first().isVisible({ timeout: 800 }).catch(() => false)) {
-      // Prefer optimistic answers when ambiguous mid-flow
-      const preferYes = request.condition.worksNormally && request.condition.screenIntact;
-      await (preferYes ? yes : no).first().click().catch(() => undefined);
-      continue;
-    }
-
-    if (await continueBtn.first().isVisible({ timeout: 800 }).catch(() => false)) {
-      await continueBtn.first().click().catch(() => undefined);
-      continue;
-    }
-
-    await page.waitForTimeout(800);
-  }
-
-  const amount = await readEstimate(page);
-  if (amount !== null) {
+  if (!(await waitForContinueEnabled(page, 30_000))) {
     return baseResult("swappie", deepLink, {
-      amountDkk: amount,
-      rawNotes: "Estimat fra Swappie sælg-flow",
+      error: "Swappie-flow blev ikke klar",
     });
   }
 
+  await clickContinue(page);
+  await page.waitForURL(/\/memory\//, { timeout: 10_000 }).catch(() => undefined);
+
+  const storageLabel =
+    request.storageGb >= 1024
+      ? `${request.storageGb / 1024}TB`
+      : `${request.storageGb}GB`;
+
+  const selected = await page.evaluate((label) => {
+    const input = Array.from(
+      document.querySelectorAll('input[type="radio"]'),
+    ).find(
+      (el) => (el as HTMLInputElement).value.toLowerCase() === label.toLowerCase(),
+    ) as HTMLInputElement | undefined;
+    if (!input) return false;
+    input.click();
+    const lab = Array.from(document.querySelectorAll("label")).find(
+      (l) => l.textContent?.trim().toLowerCase() === label.toLowerCase(),
+    );
+    lab?.click();
+    return input.checked;
+  }, storageLabel);
+
+  if (!selected) {
+    return baseResult("swappie", deepLink, {
+      error: `Kunne ikke vælge lager ${storageLabel}`,
+    });
+  }
+
+  // Pris dukker op lige efter lager-valg
+  let lastAmount: number | null = null;
+  for (let i = 0; i < 15; i++) {
+    lastAmount = await readEstimate(page);
+    if (lastAmount !== null) break;
+    await page.waitForTimeout(400);
+  }
+
+  if (lastAmount === null) {
+    return baseResult("swappie", deepLink, {
+      error: `Kunne ikke læse Swappie-estimat (${page.url()})`,
+    });
+  }
+
+  // Forsøg at justere for batteri/stand — behold seneste pris hvis det fejler
+  if (await clickContinue(page)) {
+    for (let i = 0; i < 6; i++) {
+      await answerCurrentStep(page, request);
+      if (!(await waitForContinueEnabled(page, 5_000))) break;
+      const amount = await readEstimate(page);
+      if (amount !== null) lastAmount = amount;
+      if (!(await clickContinue(page))) break;
+    }
+  }
+
   return baseResult("swappie", deepLink, {
-    error: "Kunne ikke læse Swappie-estimat",
+    amountDkk: lastAmount,
+    rawNotes: "Live estimat fra Swappie sælg-flow",
   });
 }
 
-async function answerYesNo(page: Page, yes: boolean) {
-  const label = yes ? /^(ja|yes)$/i : /^(nej|no)$/i;
-  const btn = page.getByRole("button", { name: label });
-  if (await btn.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-    await btn.first().click().catch(() => undefined);
+async function waitForContinueEnabled(page: Page, timeoutMs: number) {
+  const btn = page.getByRole("button", { name: /fortsæt/i }).first();
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const visible = await btn.isVisible().catch(() => false);
+    const disabled = await btn.isDisabled().catch(() => true);
+    if (visible && !disabled) return true;
+    await page.waitForTimeout(300);
   }
+  return false;
 }
 
-async function answerBattery(page: Page, ok: boolean) {
-  // Swappie often asks about battery health / issues
-  const options = ok
-    ? [/over 85/i, /god/i, /ingen problemer/i, /^ja$/i]
-    : [/under 85/i, /dårlig/i, /problemer/i, /^nej$/i];
-
-  for (const pattern of options) {
-    const el = page.getByText(pattern).first();
-    if (await el.isVisible({ timeout: 800 }).catch(() => false)) {
-      await el.click().catch(() => undefined);
-      return;
-    }
+async function clickContinue(page: Page): Promise<boolean> {
+  if (await domClickButton(page, /fortsæt/)) {
+    await page.waitForTimeout(700);
+    return true;
   }
-  await answerYesNo(page, ok);
+  const btn = page.getByRole("button", { name: /fortsæt/i }).first();
+  if (!(await btn.isVisible({ timeout: 1_000 }).catch(() => false))) {
+    return false;
+  }
+  if (await btn.isDisabled().catch(() => true)) {
+    return false;
+  }
+  await btn.click({ force: true }).catch(() => undefined);
+  await page.waitForTimeout(700);
+  return true;
 }
 
-async function answerCosmetic(
-  page: Page,
-  cosmetic: QuoteRequest["condition"]["cosmetic"],
-) {
-  const patterns =
-    cosmetic === "fine"
-      ? [/som ny/i, /ingen ridser/i, /perfekt/i, /god stand/i]
-      : cosmetic === "scratches"
-        ? [/ridser/i, /brugsspor/i, /synlige/i]
-        : [/skadet/i, /revner/i, /defekt/i, /dårlig/i];
+async function answerCurrentStep(page: Page, request: QuoteRequest) {
+  const { condition } = request;
+  const heading = (
+    (await page.locator("h1, h2, h3").first().innerText().catch(() => "")) || ""
+  ).toLowerCase();
 
-  for (const pattern of patterns) {
-    const el = page.getByText(pattern).first();
-    if (await el.isVisible({ timeout: 800 }).catch(() => false)) {
-      await el.click().catch(() => undefined);
-      return;
+  if (/batteri/.test(heading)) {
+    const unsure = page.getByRole("radio", { name: /ikke muligt/i });
+    if (condition.battery === "ok") {
+      const input = page.getByPlaceholder(/tal|kapacitet/i);
+      const enter = page.getByRole("radio", { name: /indtast batteri/i });
+      if (await enter.first().isVisible({ timeout: 600 }).catch(() => false)) {
+        await enter.first().click({ force: true }).catch(() => undefined);
+      }
+      if (await input.first().isVisible({ timeout: 600 }).catch(() => false)) {
+        await input.first().fill("92").catch(() => undefined);
+        await page.waitForTimeout(200);
+        if (
+          !(await page
+            .getByRole("button", { name: /fortsæt/i })
+            .first()
+            .isDisabled()
+            .catch(() => true))
+        ) {
+          return;
+        }
+      }
     }
+    if (await unsure.first().isVisible({ timeout: 800 }).catch(() => false)) {
+      await unsure.first().click({ force: true }).catch(() => undefined);
+    }
+    return;
+  }
+
+  if (/skærm|revne|display/.test(heading)) {
+    await clickYesNo(page, condition.screenIntact);
+    return;
+  }
+
+  if (/fungerer|tænde|funktions/.test(heading)) {
+    await clickYesNo(page, condition.worksNormally);
+    return;
+  }
+
+  if (/stand|ridser|kosmetik|udseende/.test(heading)) {
+    const patterns =
+      condition.cosmetic === "fine"
+        ? [/ingen ridser/i, /som ny/i, /perfekt/i, /god stand/i, /^ja$/i]
+        : condition.cosmetic === "scratches"
+          ? [/ridser/i, /brugsspor/i, /synlige/i]
+          : [/skadet/i, /revner/i, /defekt/i];
+
+    for (const pattern of patterns) {
+      const el = page.getByRole("radio", { name: pattern }).or(page.getByText(pattern));
+      if (await el.first().isVisible({ timeout: 400 }).catch(() => false)) {
+        await el.first().click({ force: true }).catch(() => undefined);
+        return;
+      }
+    }
+  }
+
+  await clickYesNo(page, condition.worksNormally && condition.screenIntact);
+}
+
+async function clickYesNo(page: Page, yes: boolean) {
+  const pattern = yes ? /^(ja|yes)$/i : /^(nej|no)$/i;
+  const el = page
+    .getByRole("radio", { name: pattern })
+    .or(page.getByRole("button", { name: pattern }));
+  if (await el.first().isVisible({ timeout: 800 }).catch(() => false)) {
+    await el.first().click({ force: true }).catch(() => undefined);
   }
 }
 
 async function readEstimate(page: Page): Promise<number | null> {
   const body = await page.locator("body").innerText().catch(() => "");
-  // Look near "Estimeret værdi" / "pris"
-  const lines = body.split("\n").map((l) => l.trim());
-  for (let i = 0; i < lines.length; i++) {
-    if (/estimeret|værdi|prisoverslag|tilbud/i.test(lines[i])) {
-      for (let j = i; j < Math.min(i + 4, lines.length); j++) {
-        const amount = parseDkkAmount(lines[j]);
-        if (amount && amount >= 100) return amount;
-      }
-    }
-  }
-
-  // Fallback: any currency-looking number in prominent elements
-  const candidates = page.locator("h1, h2, h3, [class*='price'], [class*='Price']");
-  const count = await candidates.count().catch(() => 0);
-  for (let i = 0; i < Math.min(count, 20); i++) {
-    const text = await candidates.nth(i).innerText().catch(() => "");
-    const amount = parseDkkAmount(text);
+  const match = body.match(/Estimeret værdi[:\s]*([^\n]+)/i);
+  if (match) {
+    const amount = parseDkkAmount(match[1]);
     if (amount && amount >= 100) return amount;
   }
-
   return null;
 }
 

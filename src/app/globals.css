@@ -482,6 +482,11 @@ a {
   font-weight: 700;
 }
 
+.scan-failed .scan-state {
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .pulse {
   width: 56px;
   height: 56px;

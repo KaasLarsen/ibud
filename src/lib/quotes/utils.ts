@@ -10,8 +10,10 @@ export function conditionHash(condition: NormalizedCondition): string {
   ].join("-");
 }
 
+/** v2 invaliderer gamle syntetiske estimater i cache. */
 export function cacheKey(partnerId: string, request: QuoteRequest): string {
   return [
+    "v2",
     partnerId,
     request.modelId,
     String(request.storageGb),

@@ -2,6 +2,7 @@ import type { Page } from "playwright";
 import { getModelById } from "../quotes/catalog";
 import { partnerDeepLink } from "../quotes/deep-links";
 import type { PartnerId, QuoteRequest, QuoteResult } from "../quotes/types";
+import { dismissCookieBanner } from "./browser-helpers";
 import { baseResult, parseDkkAmount, type PartnerAdapter } from "./types";
 
 type SellPageConfig = {
@@ -29,33 +30,28 @@ async function fetchSellPageQuote(
   const model = getModelById(request.modelId);
   const deepLink = partnerDeepLink(config.id, request);
 
-  await page.goto(deepLink, { waitUntil: "domcontentloaded", timeout: 30_000 });
-
-  for (const label of ["Accepter", "Acceptér", "Tillad alle", "OK", "Accept"]) {
-    const btn = page.getByRole("button", { name: new RegExp(label, "i") });
-    if (await btn.first().isVisible({ timeout: 1200 }).catch(() => false)) {
-      await btn.first().click().catch(() => undefined);
-      break;
-    }
-  }
+  await page.goto(deepLink, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await dismissCookieBanner(page);
 
   if (model) {
     await clickText(page, model.name);
-    const storageLabel =
-      request.storageGb >= 1024
-        ? `${request.storageGb / 1024} TB`
-        : `${request.storageGb} GB`;
-    await clickText(page, storageLabel, true);
+    const storageLabels = [
+      `${request.storageGb} GB`,
+      `${request.storageGb}GB`,
+    ];
+    for (const label of storageLabels) {
+      if (await clickText(page, label, true)) break;
+    }
   }
 
   await applyCondition(page, request);
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 8; i++) {
     const amount = await readAmount(page);
     if (amount !== null) {
       return baseResult(config.id, deepLink, {
         amountDkk: amount,
-        rawNotes: `Estimat fra ${config.label}`,
+        rawNotes: `Live estimat fra ${config.label}`,
       });
     }
 
@@ -72,7 +68,7 @@ async function fetchSellPageQuote(
   if (amount !== null) {
     return baseResult(config.id, deepLink, {
       amountDkk: amount,
-      rawNotes: `Estimat fra ${config.label}`,
+      rawNotes: `Live estimat fra ${config.label}`,
     });
   }
 
@@ -83,9 +79,11 @@ async function fetchSellPageQuote(
 
 async function clickText(page: Page, text: string, exact = false) {
   const el = page.getByText(text, { exact }).first();
-  if (await el.isVisible({ timeout: 2500 }).catch(() => false)) {
+  if (await el.isVisible({ timeout: 2_500 }).catch(() => false)) {
     await el.click().catch(() => undefined);
+    return true;
   }
+  return false;
 }
 
 async function applyCondition(page: Page, request: QuoteRequest) {
@@ -133,7 +131,7 @@ async function readAmount(page: Page): Promise<number | null> {
     if (/pris|tilbud|værdi|estimat|du får|udbetaling|vi betaler|bud/i.test(lines[i])) {
       for (let j = i; j < Math.min(i + 5, lines.length); j++) {
         const amount = parseDkkAmount(lines[j]);
-        if (amount && amount >= 100) return amount;
+        if (amount && amount >= 500) return amount;
       }
     }
   }

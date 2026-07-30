@@ -11,9 +11,8 @@ import { estimateQuote } from "../quotes/estimate";
 import {
   isMockMode,
   isServerlessRuntime,
-  SCRAPER_USER_AGENT,
-  shouldUseEstimatedQuotes,
 } from "./scraper-config";
+import { BROWSER_USER_AGENT } from "./browser-helpers";
 import { baseResult } from "./types";
 
 export const adapters: Record<PartnerId, PartnerAdapter> = {
@@ -34,7 +33,7 @@ export const adapters: Record<PartnerId, PartnerAdapter> = {
   }),
 };
 
-/** Estimater når live scrape ikke er muligt (serverless/mock). */
+/** Kun til lokal UI-udvikling med SCRAPER_MODE=mock — aldrig i production. */
 export function mockQuote(
   partnerId: PartnerId,
   request: QuoteRequest,
@@ -89,7 +88,7 @@ export async function fetchPartnerQuote(
   const adapter = adapters[partnerId];
   const context = await browser.newContext({
     locale: "da-DK",
-    userAgent: SCRAPER_USER_AGENT,
+    userAgent: BROWSER_USER_AGENT,
   });
   const page = await context.newPage();
 
@@ -107,20 +106,49 @@ export async function fetchPartnerQuote(
   }
 }
 
+async function launchBrowser(): Promise<Browser> {
+  const { chromium } = await import("playwright");
+  return chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  });
+}
+
+/** Live scrape af én partner (bruges lokalt uden remote worker). */
+export async function fetchPartnerQuoteLive(
+  partnerId: PartnerId,
+  request: QuoteRequest,
+): Promise<QuoteResult> {
+  if (isMockMode()) {
+    return mockQuote(partnerId, request);
+  }
+
+  if (isServerlessRuntime()) {
+    return unavailableQuote(
+      partnerId,
+      request,
+      "Live scrape kræver WORKER_URL på Vercel",
+    );
+  }
+
+  const browser = await launchBrowser();
+  try {
+    return await fetchPartnerQuote(partnerId, request, browser);
+  } finally {
+    await browser.close().catch(() => undefined);
+  }
+}
+
 export async function fetchAllQuotesLive(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
   if (isServerlessRuntime()) {
     throw new Error(
-      "Playwright kan ikke køre på Vercel — brug WORKER_URL eller SCRAPER_MODE=mock",
+      "Playwright kan ikke køre på Vercel — sæt WORKER_URL til Playwright-workeren",
     );
   }
 
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-dev-shm-usage"],
-  });
+  const browser = await launchBrowser();
 
   try {
     return await Promise.all(
@@ -132,27 +160,15 @@ export async function fetchAllQuotesLive(
 }
 
 /**
- * Hent bud: estimat på serverless/mock, ellers live scrape (worker-proces).
- * Returnerer altid priser — aldrig tomme fejlbud til brugeren.
+ * Hent bud fra partnernes sælg-flows.
+ * Mock-priser kun når SCRAPER_MODE=mock. Ellers aldrig syntetiske priser.
  */
 export async function fetchAllQuotes(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
-  if (shouldUseEstimatedQuotes() || isMockMode()) {
+  if (isMockMode()) {
     return PARTNER_IDS.map((id) => mockQuote(id, request));
   }
 
-  try {
-    const live = await fetchAllQuotesLive(request);
-
-    return PARTNER_IDS.map((id) => {
-      const liveHit = live.find((q) => q.partnerId === id);
-      if (liveHit?.amountDkk != null) return liveHit;
-      // Fallback så UI aldrig viser "pris ikke tilgængelig"
-      return mockQuote(id, request);
-    });
-  } catch (err) {
-    console.error("Live scrape failed:", err);
-    return PARTNER_IDS.map((id) => mockQuote(id, request));
-  }
+  return fetchAllQuotesLive(request);
 }
