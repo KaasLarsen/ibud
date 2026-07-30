@@ -15,7 +15,7 @@ export async function launchServerlessBrowser(): Promise<Browser> {
   process.env.AWS_LAMBDA_JS_RUNTIME = "nodejs22.x";
 
   const chromium = (await import("@sparticuz/chromium")).default;
-  chromium.setGraphicsMode(false);
+  chromium.setGraphicsMode = false;
 
   const executablePath = await chromium.executablePath();
   if (executablePath) {
