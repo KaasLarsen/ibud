@@ -32,8 +32,8 @@ export default function CookiesPage() {
             af dit søgeresultat i sessionen).
           </li>
           <li>
-            <strong>Statistik (evt.):</strong> anonyme målinger af brug, hvis vi
-            tilføjer et analyseværktøj senere.
+            <strong>Statistik:</strong> Google Analytics (GA4) til anonyme
+            målinger af brug, så vi kan forbedre sitet.
           </li>
         </ul>
         <p>
