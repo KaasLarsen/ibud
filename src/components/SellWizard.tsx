@@ -43,12 +43,18 @@ const defaultCondition: NormalizedCondition = {
   battery: "ok",
 };
 
-export function SellWizard() {
+type SellWizardProps = {
+  /** Pre-select a model (e.g. SEO model landing pages). */
+  initialModelId?: string;
+};
+
+export function SellWizard({ initialModelId }: SellWizardProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<Step>("model");
-  const [query, setQuery] = useState("");
-  const [modelId, setModelId] = useState<string | null>(null);
+  const preselected = initialModelId ? getModelById(initialModelId) : undefined;
+  const [step, setStep] = useState<Step>(preselected ? "storage" : "model");
+  const [query, setQuery] = useState(preselected?.name ?? "");
+  const [modelId, setModelId] = useState<string | null>(preselected?.id ?? null);
   const [storageGb, setStorageGb] = useState<number | null>(null);
   const [condition, setCondition] =
     useState<NormalizedCondition>(defaultCondition);

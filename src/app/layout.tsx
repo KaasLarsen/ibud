@@ -51,6 +51,12 @@ export default function RootLayout({
             i<span>Bud</span>
           </Link>
           <nav className="site-nav">
+            <Link href="/saelg-iphone" className="nav-link">
+              Sælg iPhone
+            </Link>
+            <Link href="/guides" className="nav-link">
+              Guides
+            </Link>
             <Link href="/saadan-virker-det" className="nav-link">
               Sådan virker det
             </Link>

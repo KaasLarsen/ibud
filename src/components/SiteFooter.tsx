@@ -5,8 +5,18 @@ const columns = [
   {
     title: "Produkt",
     links: [
-      { href: "/saadan-virker-det", label: "Sådan virker det" },
       { href: "/", label: "Find bud" },
+      { href: "/saelg-iphone", label: "Sælg iPhone" },
+      { href: "/saadan-virker-det", label: "Sådan virker det" },
+    ],
+  },
+  {
+    title: "Guides",
+    links: [
+      { href: "/guides", label: "Alle guides" },
+      { href: "/guides/hvad-er-min-iphone-vaerd", label: "Hvad er min iPhone værd?" },
+      { href: "/guides/saelg-iphone-danmark", label: "Sælg iPhone i Danmark" },
+      { href: "/guides/stand-ved-salgsvurdering", label: "Stand ved salg" },
     ],
   },
   {
@@ -14,11 +24,6 @@ const columns = [
     links: [
       { href: "/om-os", label: "Om os" },
       { href: "/kontakt", label: "Kontakt" },
-    ],
-  },
-  {
-    title: "Juridisk",
-    links: [
       { href: "/privatliv", label: "Privatlivspolitik" },
       { href: "/cookies", label: "Cookies" },
       { href: "/vilkaar", label: "Vilkår" },
