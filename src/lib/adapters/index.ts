@@ -1,4 +1,5 @@
 import type { Browser } from "playwright-core";
+import "./playwright-trace";
 import { greenAdapter } from "./green";
 import { greenmindAdapter } from "./greenmind";
 import { swappieAdapter } from "./swappie";
