@@ -10,10 +10,10 @@ export function conditionHash(condition: NormalizedCondition): string {
   ].join("-");
 }
 
-/** v2 invaliderer gamle syntetiske estimater i cache. */
+/** v3: HTTP-API priser (Reusely/GreenMind) i stedet for CF-blokeret scrape. */
 export function cacheKey(partnerId: string, request: QuoteRequest): string {
   return [
-    "v2",
+    "v3",
     partnerId,
     request.modelId,
     String(request.storageGb),

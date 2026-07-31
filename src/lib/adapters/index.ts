@@ -15,6 +15,7 @@ import {
 } from "./scraper-config";
 import { BROWSER_USER_AGENT } from "./browser-helpers";
 import { baseResult } from "./types";
+import { fetchPartnerQuoteHttp } from "./http";
 
 export const adapters: Record<PartnerId, PartnerAdapter> = {
   green: greenAdapter,
@@ -143,7 +144,7 @@ async function launchBrowser(): Promise<Browser> {
   }) as unknown as Browser;
 }
 
-/** Live scrape af én partner (lokal, worker eller Vercel serverless). */
+/** Live bud: HTTP-API først (Vercel-sikkert), ellers browser-scrape lokalt. */
 export async function fetchPartnerQuoteLive(
   partnerId: PartnerId,
   request: QuoteRequest,
@@ -152,11 +153,25 @@ export async function fetchPartnerQuoteLive(
     return mockQuote(partnerId, request);
   }
 
-  if (isServerlessRuntime()) {
-    const { fetchPartnerQuoteServerless } = await import("./serverless");
-    return fetchPartnerQuoteServerless(partnerId, request);
+  // Primær path: partner-API/feeds uden browser (virker på Vercel)
+  const httpQuote = await fetchPartnerQuoteHttp(partnerId, request);
+  if (httpQuote?.amountDkk != null) {
+    return httpQuote;
   }
 
+  // På Vercel: ingen Playwright-fallback (Cloudflare blokerer datacenter-IP)
+  if (isServerlessRuntime()) {
+    return (
+      httpQuote ??
+      unavailableQuote(
+        partnerId,
+        request,
+        "Bud ikke tilgængeligt via API lige nu",
+      )
+    );
+  }
+
+  // Lokal/dev: forsøg browser-scrape hvis HTTP ikke gav pris
   const browser = await launchBrowser();
   try {
     return await fetchPartnerQuote(partnerId, request, browser);
@@ -168,24 +183,9 @@ export async function fetchPartnerQuoteLive(
 export async function fetchAllQuotesLive(
   request: QuoteRequest,
 ): Promise<QuoteResult[]> {
-  const browser = await launchBrowser();
-
-  try {
-    // På serverless: sekventielt for at holde hukommelse nede
-    if (isServerlessRuntime()) {
-      const out: QuoteResult[] = [];
-      for (const id of PARTNER_IDS) {
-        out.push(await fetchPartnerQuote(id, request, browser));
-      }
-      return out;
-    }
-
-    return await Promise.all(
-      PARTNER_IDS.map((id) => fetchPartnerQuote(id, request, browser)),
-    );
-  } finally {
-    await browser.close().catch(() => undefined);
-  }
+  return Promise.all(
+    PARTNER_IDS.map((id) => fetchPartnerQuoteLive(id, request)),
+  );
 }
 
 /**
