@@ -13,13 +13,23 @@ Kode: [`src/lib/partners/green/tracking.ts`](../../src/lib/partners/green/tracki
 
 Override (valgfri): `GREEN_PARTNER_ADS_PREFIX`
 
-## Product feed (ikke brugt til bud)
+## Product feed (brugt til `/koeb-iphone`)
 
 Feed-URL (shop-katalog / refurbished til salg):
 
 `https://www.partner-ads.com/dk/feed_udlaes.php?partnerid=57214&bannerid=109386&feedid=3564`
 
-Indeholder **salgspriser**, ikke opkøbsbud. iBud bruger stadig scrape/estimat til “sælg din iPhone”-sammenligning.
+Indeholder **salgspriser**, ikke opkøbsbud. iBud parser feedet i
+[`src/lib/partners/green/feed.ts`](../../src/lib/partners/green/feed.ts)
+og viser iPhones på `/koeb-iphone`. `vareurl` i feedet er allerede
+Partner-Ads-tracket (klikbanner) — dobbelt-wrap ikke.
+
+Sælg-sammenligningen (`/`, `/resultat`) bruger stadig scrape/estimat til
+opkøbsbud.
+
+## Succesmål
+
+Se [docs/buy-metrics.md](../buy-metrics.md).
 
 ## Forventning
 

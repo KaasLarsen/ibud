@@ -126,6 +126,13 @@ export function ResultView() {
         efter deres inspektion. iBud køber ikke selv din telefon.
       </p>
 
+      <div className="buy-intent-cta">
+        <p>Vil du hellere købe en brugt iPhone?</p>
+        <Link href="/koeb-iphone" className="text-link">
+          Se telefoner hos Green →
+        </Link>
+      </div>
+
       <Link href="/" className="text-link">
         Søg en anden iPhone
       </Link>

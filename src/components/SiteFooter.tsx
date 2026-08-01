@@ -7,6 +7,7 @@ const columns = [
     links: [
       { href: "/", label: "Find bud" },
       { href: "/saelg-iphone", label: "Sælg iPhone" },
+      { href: "/koeb-iphone", label: "Køb brugt iPhone" },
       { href: "/saadan-virker-det", label: "Sådan virker det" },
     ],
   },

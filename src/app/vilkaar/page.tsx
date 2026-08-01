@@ -41,7 +41,15 @@ export default function TermsPage() {
         <h2>Links videre</h2>
         <p>
           Når du klikker videre, gælder stedets egne vilkår, privatlivspolitik
-          og cookies. Læs dem, før du sender din telefon.
+          og cookies. Læs dem, før du sender din telefon eller køber.
+        </p>
+      </section>
+
+      <section className="content-block">
+        <h2>Affiliate / provision</h2>
+        <p>
+          Nogle links til partnere (fx Green.dk) er affiliate-links. Hvis du
+          køber via dem, kan iBud få provision. Det ændrer ikke prisen for dig.
         </p>
       </section>
 

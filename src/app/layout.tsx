@@ -54,6 +54,9 @@ export default function RootLayout({
             <Link href="/saelg-iphone" className="nav-link">
               Sælg iPhone
             </Link>
+            <Link href="/koeb-iphone" className="nav-link">
+              Køb brugt
+            </Link>
             <Link href="/guides" className="nav-link">
               Guides
             </Link>

@@ -35,6 +35,11 @@ export default function CookiesPage() {
             <strong>Statistik:</strong> Google Analytics (GA4) til anonyme
             målinger af brug, så vi kan forbedre sitet.
           </li>
+          <li>
+            <strong>Partnere:</strong> når du klikker videre til fx Green via
+            Partner-Ads, kan der sættes cookies hos dem til at tilskrive et
+            eventuelt køb (affiliate).
+          </li>
         </ul>
         <p>
           Vi sælger ikke dine data. De steder, du klikker videre til, har deres
