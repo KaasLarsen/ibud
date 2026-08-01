@@ -1530,6 +1530,16 @@ a {
   margin-top: 0.75rem;
 }
 
+.buy-more {
+  display: flex;
+  justify-content: center;
+  margin: 1.75rem 0 0.5rem;
+}
+
+.buy-more-btn {
+  min-width: 10rem;
+}
+
 .buy-intent-cta {
   margin: 2rem 0 1.25rem;
   padding: 1.25rem 1.35rem;

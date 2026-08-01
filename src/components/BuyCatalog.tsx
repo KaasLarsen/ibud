@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { sendGAEvent } from "@next/third-parties/google";
 import type { BuyListing } from "@/lib/buy/types";
 import { formatDkk, formatFetchedAt } from "@/lib/quotes/format";
 
 type SortKey = "price-asc" | "price-desc" | "model";
+
+const PAGE_SIZE = 24;
 
 function uniqueSorted(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))].sort((a, b) =>
@@ -39,6 +41,7 @@ export function BuyCatalog({
   const [model, setModel] = useState("");
   const [storage, setStorage] = useState("");
   const [sort, setSort] = useState<SortKey>("price-asc");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const models = useMemo(
     () => uniqueSorted(listings.map((l) => l.modelKey)),
@@ -74,6 +77,13 @@ export function BuyCatalog({
 
     return rows;
   }, [listings, model, query, sort, storage]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [query, model, storage, sort]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   return (
     <div className="buy-catalog">
@@ -139,7 +149,7 @@ export function BuyCatalog({
       </div>
 
       <p className="buy-meta muted">
-        {filtered.length} telefon
+        Viser {visible.length} af {filtered.length} telefon
         {filtered.length === 1 ? "" : "er"} hos Green
         {fetchedAt ? ` · ${formatFetchedAt(fetchedAt)}` : null}
       </p>
@@ -149,56 +159,74 @@ export function BuyCatalog({
           Ingen telefoner matcher filtrene. Prøv en anden model eller ryd søgningen.
         </p>
       ) : (
-        <ul className="buy-grid">
-          {filtered.map((listing) => (
-            <li key={listing.id}>
-              <a
-                className="buy-item"
-                href={listing.affiliateUrl}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                onClick={() => trackBuyClick(listing)}
-              >
-                <div className="buy-item-media">
-                  {listing.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={listing.imageUrl}
-                      alt=""
-                      width={160}
-                      height={160}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <span className="buy-item-placeholder" aria-hidden />
-                  )}
-                </div>
-                <div className="buy-item-body">
-                  <p className="buy-item-partner">{listing.partnerLabel}</p>
-                  <h2 className="buy-item-title">{listing.modelName}</h2>
-                  <p className="buy-item-specs">
-                    {listing.storageLabel}
-                    {listing.color !== "—" ? ` · ${listing.color}` : null}
-                  </p>
-                  <p className="buy-item-price">
-                    {listing.variantCount > 1 ? "Fra " : null}
-                    {formatDkk(listing.priceFromDkk)}
-                  </p>
-                  {listing.deliveryDays ? (
-                    <p className="buy-item-ship muted">
-                      Levering {listing.deliveryDays} dage
-                      {listing.shippingDkk > 0
-                        ? ` · fragt ${formatDkk(listing.shippingDkk)}`
-                        : null}
+        <>
+          <ul className="buy-grid">
+            {visible.map((listing) => (
+              <li key={listing.id}>
+                <a
+                  className="buy-item"
+                  href={listing.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() => trackBuyClick(listing)}
+                >
+                  <div className="buy-item-media">
+                    {listing.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={listing.imageUrl}
+                        alt=""
+                        width={160}
+                        height={160}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="buy-item-placeholder" aria-hidden />
+                    )}
+                  </div>
+                  <div className="buy-item-body">
+                    <p className="buy-item-partner">{listing.partnerLabel}</p>
+                    <h2 className="buy-item-title">{listing.modelName}</h2>
+                    <p className="buy-item-specs">
+                      {listing.storageLabel}
+                      {listing.color !== "—" ? ` · ${listing.color}` : null}
                     </p>
-                  ) : null}
-                  <span className="buy-item-cta">Se hos Green →</span>
-                </div>
-              </a>
-            </li>
-          ))}
-        </ul>
+                    <p className="buy-item-price">
+                      {listing.variantCount > 1 ? "Fra " : null}
+                      {formatDkk(listing.priceFromDkk)}
+                    </p>
+                    {listing.deliveryDays ? (
+                      <p className="buy-item-ship muted">
+                        Levering {listing.deliveryDays} dage
+                        {listing.shippingDkk > 0
+                          ? ` · fragt ${formatDkk(listing.shippingDkk)}`
+                          : null}
+                      </p>
+                    ) : null}
+                    <span className="buy-item-cta">Se hos Green →</span>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          {hasMore ? (
+            <div className="buy-more">
+              <button
+                type="button"
+                className="cta buy-more-btn"
+                onClick={() =>
+                  setVisibleCount((n) =>
+                    Math.min(n + PAGE_SIZE, filtered.length),
+                  )
+                }
+              >
+                Vis flere
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );
