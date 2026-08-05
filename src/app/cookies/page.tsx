@@ -36,6 +36,10 @@ export default function CookiesPage() {
             målinger af brug, så vi kan forbedre sitet.
           </li>
           <li>
+            <strong>Annoncer:</strong> Google AdSense kan vise annoncer og
+            sætte cookies til at måle og tilpasse annoncer.
+          </li>
+          <li>
             <strong>Partnere:</strong> når du klikker videre til fx Green via
             Partner-Ads, kan der sættes cookies hos dem til at tilskrive et
             eventuelt køb (affiliate).

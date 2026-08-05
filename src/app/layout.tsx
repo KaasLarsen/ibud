@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Fraunces, Manrope } from "next/font/google";
 import Link from "next/link";
+import Script from "next/script";
 import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
+
+const ADSENSE_CLIENT = "ca-pub-7373148222153531";
 
 const display = Fraunces({
   variable: "--font-display",
@@ -46,6 +49,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col antialiased">
+        <Script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         <header className="site-header">
           <Link href="/" className="brand">
             i<span>Bud</span>
